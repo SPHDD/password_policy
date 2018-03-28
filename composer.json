@@ -8,5 +8,8 @@
         "issues": "https://github.com/SPHDD/password_policy/issues",
         "source": "https://github.com/SPHDD/password_policy"
     },
-    "license": "GPL-3.0"
+    "license": "GPL-3.0",
+    "require": {
+        "php": ">=5.5.9"
+    }
 }
