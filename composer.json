@@ -1,0 +1,12 @@
+{
+    "name": "SPHDD/password_policy",
+    "description": "Password Policy management for Drupal 8.",
+    "type": "drupal-module",
+    "keywords": ["Drupal"],
+    "homepage": "https://github.com/SPHDD/password_policy",
+    "support": {
+        "issues": "https://github.com/SPHDD/password_policy/issues",
+        "source": "https://github.com/SPHDD/password_policy"
+    },
+    "license": "GPL-3.0"
+}
