@@ -1,5 +1,5 @@
 {
-    "name": "SPHDD/password_policy",
+    "name": "sphdd/password_policy",
     "description": "Password Policy management for Drupal 8.",
     "type": "drupal-module",
     "keywords": ["Drupal"],
