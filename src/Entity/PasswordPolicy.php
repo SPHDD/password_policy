@@ -1,14 +1,8 @@
 <?php
-/**
-* @file
-* Contains \Drupal\password_policy\Entity\PasswordPolicy.
-*/
 
 namespace Drupal\password_policy\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
-use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
-use Drupal\password_policy\PasswordPolicyConstraintCollection;
 use Drupal\password_policy\PasswordPolicyInterface;
 
 /**
@@ -17,6 +11,12 @@ use Drupal\password_policy\PasswordPolicyInterface;
  * @ConfigEntityType(
  *   id = "password_policy",
  *   label = @Translation("Password Policy"),
+ *   label_singular = @Translation("Password Policy"),
+ *   label_plural = @Translation("Password Policies"),
+ *   label_count = @PluralTranslation(
+ *     singular = @Translation("password policy"),
+ *     plural = @Translation("password policies"),
+ *   ),
  *   handlers = {
  *     "list_builder" = "Drupal\password_policy\Controller\PasswordPolicyListBuilder",
  *     "form" = {
@@ -43,17 +43,17 @@ use Drupal\password_policy\PasswordPolicyInterface;
 class PasswordPolicy extends ConfigEntityBase implements PasswordPolicyInterface {
 
   /**
-  * The ID of the password policy.
-  *
-  * @var int
-  */
+   * The ID of the password policy.
+   *
+   * @var int
+   */
   protected $id;
 
   /**
-  * The policy title.
-  *
-  * @var string
-  */
+   * The policy title.
+   *
+   * @var string
+   */
   protected $label;
 
   /**
@@ -92,31 +92,46 @@ class PasswordPolicy extends ConfigEntityBase implements PasswordPolicyInterface
   }
 
   /**
-   * Return the constraints from the policy
+   * Return the constraints from the policy.
    *
-   * return @var array
+   * @return array
+   *   The policies constraints.
    */
-  public function getConstraints(){
+  public function getConstraints() {
     return $this->policy_constraints;
   }
 
+  /**
+   * Return a specific constraint from the policy.
+   *
+   * @return \Drupal\password_policy\PasswordConstraintInterface
+   *   A specific constraint in the policy.
+   */
   public function getConstraint($key) {
     if (!isset($this->policy_constraints[$key])) {
-      return [];
+      return NULL;
     }
     return $this->policy_constraints[$key];
   }
 
   /**
-   * Return the password reset setting from the policy
+   * Return the password reset setting from the policy.
    *
-   * return @var array
+   * @return int
+   *   The number of days between password resets.
    */
-  public function getPasswordReset(){
+  public function getPasswordReset() {
     return $this->password_reset;
   }
 
+  /**
+   * Return the user roles for the policy.
+   *
+   * @return array
+   *   The user roles assigned to the policy.
+   */
   public function getRoles() {
     return $this->roles;
   }
+
 }

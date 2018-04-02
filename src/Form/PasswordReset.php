@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains \Drupal\password_policy\Form\PasswordReset.
- */
-
 namespace Drupal\password_policy\Form;
 
 use Drupal\Core\Form\FormBase;

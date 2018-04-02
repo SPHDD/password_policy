@@ -1,11 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains Drupal\password_policy_length\Constraints\PasswordLength.
- */
-
-
 namespace Drupal\password_policy_length\Plugin\PasswordConstraint;
 
 use Drupal\Core\Form\FormStateInterface;
@@ -27,18 +21,19 @@ class PasswordLength extends PasswordConstraintBase {
   /**
    * {@inheritdoc}
    */
-  function validate($password, $user_context) {
+  public function validate($password, $user_context) {
     $configuration = $this->getConfiguration();
     $validation = new PasswordPolicyValidation();
-    switch($configuration['character_operation']) {
+    switch ($configuration['character_operation']) {
       case 'minimum':
         if (strlen($password) < $configuration['character_length']) {
-        $validation->setErrorMessage($this->t('The length of the password is !count characters and needs to be at least @length characters', ['!count' => strlen($password), '@length' => $configuration['character_length']]));
+          $validation->setErrorMessage($this->formatPlural($configuration['character_length'], 'Password length must be at least 1 character.', 'Password length must be at least @count characters.'));
         }
         break;
+
       case 'maximum':
         if (strlen($password) > $configuration['character_length']) {
-          $validation->setErrorMessage($this->t('The length of the password is !count characters and can only be at most @length characters', ['!count' => strlen($password), '@length' => $configuration['character_length']]));
+          $validation->setErrorMessage($this->formatPlural($configuration['character_length'], 'Password length must not exceed 1 character.', 'Password length must not exceed @count characters.'));
         }
         break;
     }
@@ -50,7 +45,7 @@ class PasswordLength extends PasswordConstraintBase {
    */
   public function defaultConfiguration() {
     return [
-      'character_length' => 0,
+      'character_length' => 1,
       'character_operation' => 'minimum',
     ];
   }
@@ -59,17 +54,17 @@ class PasswordLength extends PasswordConstraintBase {
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
-    $form['character_length'] = array(
+    $form['character_length'] = [
       '#type' => 'textfield',
-      '#title' => t('Number of characters'),
+      '#title' => $this->t('Number of characters'),
       '#default_value' => $this->getConfiguration()['character_length'],
-    );
-    $form['character_operation'] = array(
+    ];
+    $form['character_operation'] = [
       '#type' => 'select',
-      '#title' => t('Operation'),
-      '#options' => array('minimum' => 'Minimum length', 'maximum' => 'Maximum length'),
+      '#title' => $this->t('Operation'),
+      '#options' => ['minimum' => 'Minimum length', 'maximum' => 'Maximum length'],
       '#default_value' => $this->getConfiguration()['character_operation'],
-    );
+    ];
     return $form;
   }
 
@@ -94,15 +89,16 @@ class PasswordLength extends PasswordConstraintBase {
    * {@inheritdoc}
    */
   public function getSummary() {
-    switch($this->configuration['character_operation']) {
+    switch ($this->configuration['character_operation']) {
       case 'minimum':
         $operation = 'at least';
         break;
+
       case 'maximum':
         $operation = 'at most';
         break;
     }
-    return $this->t('Password character length of @operation @characters', array('@operation' => $operation,'@characters' => $this->configuration['character_length']));
+    return $this->t('Password character length of @operation @characters', ['@operation' => $operation, '@characters' => $this->configuration['character_length']]);
   }
 
 }

@@ -1,16 +1,13 @@
 <?php
 
-/**
- * @file
- * Contains Drupal\password_policy_history\Constraints\PasswordHistory.
- */
-
-
 namespace Drupal\password_policy_history\Plugin\PasswordConstraint;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\password_policy\PasswordConstraintBase;
 use Drupal\password_policy\PasswordPolicyValidation;
+use Drupal\Core\Database\Database;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Password\PasswordInterface;
 
 /**
@@ -23,12 +20,48 @@ use Drupal\Core\Password\PasswordInterface;
  *   error_message = @Translation("You have used the same password previously and cannot."),
  * )
  */
-class PasswordHistory extends PasswordConstraintBase {
+class PasswordHistory extends PasswordConstraintBase implements ContainerFactoryPluginInterface {
+
+  /**
+   * The password service.
+   *
+   * @var \Drupal\Core\Password\PasswordInterface
+   */
+  protected $passwordService;
 
   /**
    * {@inheritdoc}
    */
-  function validate($password, $user_context) {
+  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
+    return new static(
+      $configuration,
+      $plugin_id,
+      $plugin_definition,
+      $container->get('password')
+    );
+  }
+
+  /**
+   * Constructs a new PasswordHistory constraint.
+   *
+   * @param array $configuration
+   *   A configuration array containing information about the plugin instance.
+   * @param string $plugin_id
+   *   The plugin_id for the plugin instance.
+   * @param mixed $plugin_definition
+   *   The plugin implementation definition.
+   * @param \Drupal\Core\Password\PasswordInterface $password_service
+   *   The password service.
+   */
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, PasswordInterface $password_service) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+    $this->passwordService = $password_service;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validate($password, $user_context) {
     $configuration = $this->getConfiguration();
     $validation = new PasswordPolicyValidation();
 
@@ -36,24 +69,22 @@ class PasswordHistory extends PasswordConstraintBase {
       return $validation;
     }
 
-    $password_service = \Drupal::service('password');
-
-    //query for users hashes
-    $hashes = db_select('password_policy_history', 'pph')
-    ->fields('pph', array('pass_hash'))
+    // Query for users hashes.
+    $hashes = Database::getConnection()->select('password_policy_history', 'pph')
+      ->fields('pph', ['pass_hash'])
       ->condition('uid', $user_context['uid'])
       ->execute()
       ->fetchAll();
 
     $repeats = 0;
     foreach ($hashes as $hash) {
-      if ($password_service->check($password, $hash->pass_hash)) {
+      if ($this->passwordService->check($password, $hash->pass_hash)) {
         $repeats++;
       }
     }
 
-    if ($repeats > $configuration['history_repeats']) {
-      $validation->setErrorMessage($this->t('You cannot use the same password more than @history-repeats time(s) and this has been used @number-repeats time(s)', array('@history-repeats'=>$configuration['history_repeats']+1, '@number-repeats'=> $repeats)));
+    if ($repeats > intval($configuration['history_repeats'])) {
+      $validation->setErrorMessage($this->t('Password has been reused too many times.  Choose a different password.'));
     }
 
     return $validation;
@@ -72,12 +103,12 @@ class PasswordHistory extends PasswordConstraintBase {
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
-    $form['history_repeats'] = array(
+    $form['history_repeats'] = [
       '#type' => 'textfield',
-      '#title' => t('Number of allowed repeated passwords'),
+      '#title' => $this->t('Number of allowed repeated passwords'),
       '#description' => 'A value of 0 represents no allowed repeats',
       '#default_value' => $this->getConfiguration()['history_repeats'],
-    );
+    ];
     return $form;
   }
 
@@ -101,7 +132,7 @@ class PasswordHistory extends PasswordConstraintBase {
    * {@inheritdoc}
    */
   public function getSummary() {
-    return $this->t('Number of allowed repeated passwords: @number-repeats', array('@number-repeats' => $this->configuration['history_repeats']));
+    return $this->t('Number of allowed repeated passwords: @number-repeats', ['@number-repeats' => $this->configuration['history_repeats']]);
   }
 
 }

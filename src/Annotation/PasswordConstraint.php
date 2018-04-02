@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Contains Drupal\password_policy\Annotation\PasswordConstraint.
- */
-
 namespace Drupal\password_policy\Annotation;
 
 use Drupal\Component\Annotation\Plugin;
@@ -26,18 +21,18 @@ class PasswordConstraint extends Plugin {
   /**
    * The human-readable name of the constraint type.
    *
-   * @ingroup plugin_translatable
-   *
    * @var \Drupal\Core\Annotation\Translation
+   *
+   * @ingroup plugin_translatable
    */
   public $title;
 
   /**
    * The description shown to users.
    *
-   * @ingroup plugin_translatable
-   *
    * @var \Drupal\Core\Annotation\Translation
+   *
+   * @ingroup plugin_translatable
    */
   public $description;
 
@@ -45,9 +40,9 @@ class PasswordConstraint extends Plugin {
   /**
    * The error message shown if the constraint fails.
    *
-   * @ingroup plugin_translatable
-   *
    * @var \Drupal\Core\Annotation\Translation
+   *
+   * @ingroup plugin_translatable
    */
   public $error_message;
 

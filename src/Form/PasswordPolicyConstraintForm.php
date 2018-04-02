@@ -1,11 +1,6 @@
 <?php
-/**
- * @file
- * Contains \Drupal\password_policy\Form\PasswordPolicyConstraintForm.php
- */
 
 namespace Drupal\password_policy\Form;
-
 
 use Drupal\Component\Plugin\PluginManagerInterface;
 use Drupal\Component\Serialization\Json;
@@ -17,23 +12,39 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ * Form that lists out the constraints for the policy.
+ */
 class PasswordPolicyConstraintForm extends FormBase {
 
   /**
+   * Plugin manager for constraints.
+   *
    * @var \Drupal\Component\Plugin\PluginManagerInterface
    */
   protected $manager;
 
   /**
+   * Machine name for the form step.
+   *
    * @var string
    */
-  protected $machine_name;
+  protected $machineName;
 
+  /**
+   * {@inheritdoc}
+   */
   public static function create(ContainerInterface $container) {
     return new static($container->get('plugin.manager.password_policy.password_constraint'));
   }
 
-  function __construct(PluginManagerInterface $manager) {
+  /**
+   * Overridden constructor to load the plugin.
+   *
+   * @param \Drupal\Component\Plugin\PluginManagerInterface $manager
+   *   Plugin manager for constraints.
+   */
+  public function __construct(PluginManagerInterface $manager) {
     $this->manager = $manager;
   }
 
@@ -49,7 +60,7 @@ class PasswordPolicyConstraintForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $cached_values = $form_state->getTemporaryValue('wizard');
-    $this->machine_name = $cached_values['id'];
+    $this->machineName = $cached_values['id'];
     $form['#attached']['library'][] = 'core/drupal.dialog.ajax';
     $constraints = [];
     foreach ($this->manager->getDefinitions() as $plugin_id => $definition) {
@@ -69,7 +80,7 @@ class PasswordPolicyConstraintForm extends FormBase {
     $form['add'] = [
       '#type' => 'submit',
       '#name' => 'add',
-      '#value' => t('Configure Constraint Settings'),
+      '#value' => $this->t('Configure Constraint Settings'),
       '#ajax' => [
         'callback' => [$this, 'add'],
         'event' => 'click',
@@ -82,15 +93,19 @@ class PasswordPolicyConstraintForm extends FormBase {
       '#markup' => '<h2>Policy Constraints</h2>',
     ];
 
-    $form['items'] = array(
+    $form['items'] = [
       '#type' => 'markup',
       '#prefix' => '<div id="configured-constraints">',
       '#suffix' => '</div>',
       '#theme' => 'table',
-      '#header' => array($this->t('Plugin Id'), $this->t('Summary'), $this->t('Operations')),
+      '#header' => [
+        'plugin_id' => $this->t('Plugin Id'),
+        'summary' => $this->t('Summary'),
+        'operations' => $this->t('Operations'),
+      ],
       '#rows' => $this->renderRows($cached_values),
-      '#empty' => t('No constraints have been configured.')
-    );
+      '#empty' => $this->t('No constraints have been configured.'),
+    ];
 
     return $form;
   }
@@ -99,73 +114,112 @@ class PasswordPolicyConstraintForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
-
+    // This form has no explicit submit action since it just shows constraints.
   }
 
+  /**
+   * Ajax callback that manages adding a constraint.
+   *
+   * @param array $form
+   *   Form definition of parent form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   State of the form.
+   *
+   * @return \Drupal\Core\Ajax\AjaxResponse
+   *   Returns the valid Ajax response from a modal window.
+   */
   public function add(array &$form, FormStateInterface $form_state) {
     $constraint = $form_state->getValue('constraint');
-    $content = \Drupal::formBuilder()->getForm('\Drupal\password_policy\Form\ConstraintEdit', $constraint, $this->machine_name);
+    $content = \Drupal::formBuilder()->getForm('\Drupal\password_policy\Form\ConstraintEdit', $constraint, $this->machineName);
     $content['#attached']['library'][] = 'core/drupal.dialog.ajax';
-    $content['submit']['#attached']['drupalSettings']['ajax'][$content['submit']['#id']]['url'] = $this->url('entity.password_policy.constraint.add', ['machine_name' => $this->machine_name, 'constraint_id' => $constraint], ['query' => [FormBuilderInterface::AJAX_FORM_REQUEST => TRUE]]);
+    $url = Url::fromRoute('entity.password_policy.constraint.add', [
+      'machine_name' => $this->machineName,
+      'constraint_id' => $constraint,
+    ], ['query' => [FormBuilderInterface::AJAX_FORM_REQUEST => TRUE]]);
+    $content['submit']['#attached']['drupalSettings']['ajax'][$content['submit']['#id']]['url'] = $url->toString();
     $response = new AjaxResponse();
-    $response->addCommand(new OpenModalDialogCommand($this->t('Configure Required Context'), $content, array('width' => '700')));
+    $response->addCommand(new OpenModalDialogCommand($this->t('Configure Required Context'), $content, ['width' => '700']));
     return $response;
   }
 
   /**
-   * @param $cached_values
+   * Helper function to render the constraint rows for the policy.
+   *
+   * @param array $cached_values
+   *   Loading the cached metadata for the form wizard.
    *
    * @return array
+   *   Constraint rows rendered for the policy.
    */
   public function renderRows($cached_values) {
-    /** @var $policy \Drupal\password_policy\Entity\PasswordPolicy */
+    /** @var \Drupal\password_policy\Entity\PasswordPolicy $policy */
     $policy = $cached_values['password_policy'];
-    $configured_conditions = array();
+    $configured_conditions = [];
     foreach ($policy->getConstraints() as $row => $constraint) {
-      /** @var $instance \Drupal\password_policy\PasswordConstraintInterface */
+      /** @var \Drupal\password_policy\PasswordConstraintInterface $instance */
       $instance = $this->manager->createInstance($constraint['id'], $constraint);
-      $build = array(
+
+      $operations = $this->getOperations('entity.password_policy.constraint',
+        ['machine_name' => $cached_values['id'], 'constraint_id' => $row]);
+
+      $build = [
         '#type' => 'operations',
-        '#links' => $this->getOperations('entity.password_policy.constraint', ['machine_name' => $cached_values['id'], 'constraint_id' => $row]),
-      );
-      $configured_conditions[] = array(
-        $instance->getPluginId(),
-        $instance->getSummary(),
+        '#links' => $operations,
+      ];
+
+      $configured_conditions[] = [
+        'plugin_id' => $instance->getPluginId(),
+        'summary' => $instance->getSummary(),
         'operations' => [
           'data' => $build,
         ],
-      );
+      ];
     }
     return $configured_conditions;
   }
 
-  protected function getOperations($route_name_base, array $route_parameters = array()) {
-    $operations['edit'] = array(
-      'title' => t('Edit'),
-      'url' => new Url($route_name_base . '.edit', $route_parameters),
-      'weight' => 10,
-      'attributes' => array(
-        'class' => array('use-ajax'),
-        'data-dialog-type' => 'modal',
-        'data-dialog-options' => Json::encode([
-          'width' => 700,
-        ]),
-      ),
-    );
+  /**
+   * Helper function to load edit operations for a constraint.
+   *
+   * @param string $route_name_base
+   *   String representing the base of the route name for the constraints.
+   * @param array $route_parameters
+   *   Passing route parameter context to the helper function.
+   *
+   * @return array
+   *   Set of operations associated with a constraint.
+   */
+  protected function getOperations($route_name_base, array $route_parameters = []) {
+    $edit_url = new Url($route_name_base . '.edit', $route_parameters);
     $route_parameters['id'] = $route_parameters['constraint_id'];
     unset($route_parameters['constraint_id']);
-    $operations['delete'] = array(
-      'title' => t('Delete'),
-      'url' => new Url($route_name_base . '.delete', $route_parameters),
-      'weight' => 100,
-      'attributes' => array(
-        'class' => array('use-ajax'),
+    $delete_url = new Url($route_name_base . '.delete', $route_parameters);
+    $operations = [];
+
+    $operations['edit'] = [
+      'title' => $this->t('Edit'),
+      'url' => $edit_url,
+      'weight' => 10,
+      'attributes' => [
+        'class' => ['use-ajax'],
         'data-dialog-type' => 'modal',
         'data-dialog-options' => Json::encode([
           'width' => 700,
         ]),
-      ),
-    );
+      ],
+    ];
+    $operations['delete'] = [
+      'title' => $this->t('Delete'),
+      'url' => $delete_url,
+      'weight' => 100,
+      'attributes' => [
+        'class' => ['use-ajax'],
+        'data-dialog-type' => 'modal',
+        'data-dialog-options' => Json::encode([
+          'width' => 700,
+        ]),
+      ],
+    ];
     return $operations;
   }
 

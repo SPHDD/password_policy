@@ -1,10 +1,5 @@
 <?php
 
-/**
- * @file
- * Definition of Drupal\password_policy_length\Tests\PasswordLengthOperations.
- */
-
 namespace Drupal\password_policy_length\Tests;
 
 use Drupal\simpletest\WebTestBase;
@@ -16,68 +11,52 @@ use Drupal\simpletest\WebTestBase;
  */
 class PasswordLengthOperations extends WebTestBase {
 
-  public static $modules = array('password_policy_length', 'password_policy');
+  public static $modules = ['password_policy_length', 'password_policy'];
 
   /**
-   * Test password length policy management.
+   * Administrative user.
+   *
+   * @var \Drupal\Core\Session\AccountInterface
    */
-  function testPasswordLengthPolicyManagement() {
-    // Create user with permission to create policy.
-    $user1 = $this->drupalCreateUser(array('administer site configuration'));
-    $this->drupalLogin($user1);
+  protected $adminUser;
 
-    // Create new password reset policy.
-    $edit = array();
-    $edit['character_length'] = '5';
-    $this->drupalPostForm('admin/config/security/password-policy/password-length', $edit, t('Add policy'));
+  /**
+   * {@inheritdoc}
+   */
+  protected function setUp() {
+    parent::setUp();
+    $this->adminUser = $this->drupalCreateUser(['administer site configuration']);
+    $this->drupalLogin($this->adminUser);
+  }
 
-    // Get info for policy.
-    $policy = db_select("password_policy_length_policies", 'p')
-      ->fields('p', array())
-      ->orderBy('p.pid', 'DESC')
-      ->execute()
-      ->fetchObject();
+  /**
+   * Test the management of the "length" constraint.
+   */
+  public function testPasswordLengthManagement() {
+    // Create a policy and add minimum and maximum "length" constraints.
+    $this->drupalPostForm('admin/config/security/password-policy/add', ['label' => 'Test policy', 'id' => 'test_policy'], 'Next');
+    $this->drupalGet('admin/config/system/password_policy/constraint/add/test_policy/password_length');
+    $this->assertText('Number of characters');
+    $this->assertText('Operation');
 
-    $this->assertEqual($policy->character_length, '5', 'The character length must be 5 after insert');
+    $this->drupalPostForm(NULL, ['character_operation' => 'minimum', 'character_length' => 1], 'Save');
+    $this->assertText('Password character length of at least 1');
 
-    // Check user interface.
-    $this->drupalGet('admin/config/security/password-policy');
-    $this->assertText("Minimum character length 5");
+    $this->drupalGet('admin/config/system/password_policy/constraint/add/test_policy/password_length');
+    $this->drupalPostForm(NULL, ['character_operation' => 'maximum', 'character_length' => 6], 'Save');
+    $this->assertText('Password character length of at most 6');
 
-    // Update the policy.
-    $edit = array();
-    $edit['character_length'] = '10';
-    $this->drupalPostForm("admin/config/security/password-policy/password-length/" . $policy->pid, $edit, t('Update policy'));
+    $this->drupalGet('admin/config/system/password_policy/constraint/add/test_policy/password_length');
+    $this->drupalPostForm(NULL, ['character_operation' => 'minimum', 'character_length' => ''], 'Save');
+    $this->assertText('The character length must be a positive number.');
 
-    // Check user interface.
-    $this->drupalGet('admin/config/security/password-policy');
-    $this->assertText("Minimum character length 10");
+    $this->drupalGet('admin/config/system/password_policy/constraint/add/test_policy/password_length');
+    $this->drupalPostForm(NULL, ['character_operation' => 'minimum', 'character_length' => -1], 'Save');
+    $this->assertText('The character length must be a positive number.');
 
-    // Get info for policy.
-    $policy = db_select("password_policy_length_policies", 'p')
-      ->fields('p', array())
-      ->condition('p.pid', $policy->pid)
-      ->execute()
-      ->fetchObject();
-
-    $this->assertEqual($policy->character_length, '10', 'The character length must be 10 after update');
-
-    // Delete the policy.
-    $edit = array();
-    $this->drupalPostForm("admin/config/security/password-policy/delete-policy/password_policy_length_constraint/" . $policy->pid, $edit, t('Confirm deletion of policy'));
-
-    // Get info for policy.
-    $policy = db_select("password_policy_length_policies", 'p')
-      ->fields('p', array())
-      ->condition('p.pid', $policy->pid)
-      ->execute()
-      ->fetchAll();
-
-    $this->assertEqual(count($policy), 0, 'The policy must be deleted');
-
-    // Check user interface.
-    $this->drupalGet('admin/config/security/password-policy');
-    $this->assertNoText("Minimum character length 10");
+    $this->drupalGet('admin/config/system/password_policy/constraint/add/test_policy/password_length');
+    $this->drupalPostForm(NULL, ['character_operation' => 'minimum', 'character_length' => $this->randomMachineName()], 'Save');
+    $this->assertText('The character length must be a positive number.');
   }
 
 }

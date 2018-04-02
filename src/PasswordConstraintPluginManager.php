@@ -1,18 +1,16 @@
 <?php
-/**
- * @file
- * Contains Drupal\password_policy\PasswordConstraintPluginManager.
- */
 
 namespace Drupal\password_policy;
 
-use Drupal\Core\Plugin\Discovery\AnnotatedClassDiscovery;
+use Drupal\Core\Plugin\DefaultPluginManager;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Language\LanguageManager;
 
+/**
+ * Plugin manager that controls password constraints.
+ */
+class PasswordConstraintPluginManager extends DefaultPluginManager {
 
-class PasswordConstraintPluginManager extends \Drupal\Core\Plugin\DefaultPluginManager {
   /**
    * Constructs a new PasswordConstraintPluginManager.
    *

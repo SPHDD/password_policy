@@ -1,8 +1,4 @@
 <?php
-/**
- * @file
- * Provides Drupal\password_policy\PasswordConstraintBase.
- */
 
 namespace Drupal\password_policy;
 
@@ -10,6 +6,9 @@ use Drupal\Component\Plugin\PluginBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 
+/**
+ * A base class to define standard operations of a password constraint.
+ */
 abstract class PasswordConstraintBase extends PluginBase implements PasswordConstraintInterface {
   use StringTranslationTrait;
 
@@ -52,16 +51,16 @@ abstract class PasswordConstraintBase extends PluginBase implements PasswordCons
    * {@inheritdoc}
    */
   public function defaultConfiguration() {
-    return array();
+    return [];
   }
 
   /**
    * {@inheritdoc}
    */
   public function getConfiguration() {
-    return array(
+    return [
       'id' => $this->getPluginId(),
-    ) + $this->configuration;
+    ] + $this->configuration;
   }
 
   /**
@@ -76,6 +75,7 @@ abstract class PasswordConstraintBase extends PluginBase implements PasswordCons
    * {@inheritdoc}
    */
   public function calculateDependencies() {
-    return array();
+    return [];
   }
+
 }

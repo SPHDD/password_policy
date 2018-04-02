@@ -1,13 +1,6 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: kris
- * Date: 4/26/15
- * Time: 4:55 PM
- */
 
 namespace Drupal\password_policy\Form;
-
 
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -15,20 +8,34 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\user\RoleStorageInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+/**
+ * The form to select roles that are associated to the policy.
+ */
 class PasswordPolicyRolesForm extends FormBase {
 
   /**
+   * Role storage.
+   *
    * @var \Drupal\user\RoleStorageInterface
    */
   protected $storage;
 
+  /**
+   * {@inheritdoc}
+   */
   public static function create(ContainerInterface $container) {
-    /** @var $entity_manager \Drupal\Core\Entity\EntityManagerInterface */
+    /** @var \Drupal\Core\Entity\EntityManagerInterface $entity_manager */
     $entity_manager = $container->get('entity.manager');
     return new static($entity_manager->getStorage('user_role'));
   }
 
-  function __construct(RoleStorageInterface $storage) {
+  /**
+   * Overridden constructor to load the storage.
+   *
+   * @param \Drupal\user\RoleStorageInterface $storage
+   *   Role storage.
+   */
+  public function __construct(RoleStorageInterface $storage) {
     $this->storage = $storage;
   }
 
@@ -44,7 +51,7 @@ class PasswordPolicyRolesForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
     $cached_values = $form_state->getTemporaryValue('wizard');
-    /** @var $policy \Drupal\password_policy\Entity\PasswordPolicy */
+    /** @var \Drupal\password_policy\Entity\PasswordPolicy $policy */
     $policy = $cached_values['password_policy'];
     $options = [];
     foreach ($this->storage->loadMultiple() as $role) {
@@ -66,7 +73,7 @@ class PasswordPolicyRolesForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $cached_values = $form_state->getTemporaryValue('wizard');
-    /** @var $policy \Drupal\password_policy\Entity\PasswordPolicy */
+    /** @var \Drupal\password_policy\Entity\PasswordPolicy $policy */
     $policy = $cached_values['password_policy'];
     $policy->set('roles', array_filter($form_state->getValue('roles')));
   }
